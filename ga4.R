@@ -42,13 +42,13 @@ gadata <- google_analytics(id = ga_id,
 
 
 sessions.ga <- c(
-  metrics = "sessions",
-  dimensions = "date"
+  metrics = "sessions,users",
+  dimensions = "yearWeek"
 )
 
 bounces.ga <- c(
-  metrics = 'sessions,bounces',
-  dimensions = 'date'
+  metrics = 'bounces',
+  dimensions = 'yearWeek'
 )
 bounces.ga['metrics']
 bounces.ga[4]
@@ -74,7 +74,7 @@ getGaData4 <- function(query, ga_id, date_range) {
   # ga_id <- view
   ga <- google_analytics_4(
     ga_id,
-    date_range,
+    date_range = as.character(date_range),
     metrics = as.vector(unlist(strsplit(query['metrics'], ","), use.names = F)),
     dimensions = as.vector(unlist(strsplit(query['dimensions'], ","), use.names = F))
   )
@@ -86,8 +86,49 @@ sessions.ga
 
 # as.vector(unlist(strsplit(bounces.ga['metrics'], ","), use.names = F))
 
+to.date <- as.Date(format(Sys.Date(), "%Y-%m-%d"))
+library(lubridate)
 
-date_range = c("2015-07-30","2015-10-01")
+# start.Date <- function(last_Day){
+#   
+#   days <- seq(last_Day-6,last_Day,by='day')
+#   from.date <- days[weekdays(days)=='lunes']
+#   return(from.date)
+#   
+# }
+
+start.Date <- function(last_Day){
+  
+  days <- floor_date(seq(last_Day-365,last_Day,by='week'), 'week') # Ojo. Tiene que devolver una semana más.
+  from.date <- days - 6
+  # from.date <- days[weekdays(days+1)=='lunes']
+  return(min(from.date))
+  
+}
+
+
+
+last_Day <- floor_date(to.date, "week")
+
+first_Day <- start.Date(last_Day)
+
+# last_previous_week_Day <- first_Day-1
+# first_previous_week_Day <- start.Date(last_previous_week_Day)
+
+# date_range <- c(first_Day ,last_Day,first_previous_week_Day,last_previous_week_Day)
+
+
+# prev.days <- seq(previous_sunday-6,previous_sunday,by='day')
+# from.date <- prev.days[weekdays(prev.days)=='lunes']
+# 
+# previous_sunday - 1
+
+# date_range <- c(from.date ,previous_sunday)
+
+date_range <- c(first_Day ,last_Day)
+
+
+
 getGaData4(bounces.ga, ga_id, date_range)
 getGaData4(sessions.ga, ga_id, date_range)
 
@@ -107,7 +148,7 @@ comb <- function(x, ...) {
 }
 
 merge.by.time <- function(a, b) {  
-  merge(a, b, by='date', suffixes=c('', ncol(a)))
+  merge(a, b, by='yearWeek', suffixes=c('', ncol(a)))
 }
 
 res<- system.time(
@@ -124,10 +165,10 @@ system.time(
 # res4.df <- foreach(i=1:length(ga_queries), .packages = c("googleAnalyticsR","googleAuthR"), .combine='merge.by.time') %dopar% getGaData4(ga_queries[[i]])
 
 #OK
-res4 <- foreach(i=1:length(ga_queries), .packages = c("googleAnalyticsR","googleAuthR"), .combine='list', .multicombine=TRUE) %dopar% getGaData4(ga_queries[[i]], ga_id, date_range)
+res4 <- foreach(i=1:length(ga_queries),.export=c(''), .packages = c("googleAnalyticsR","googleAuthR","lubridate"), .combine='list', .multicombine=TRUE) %dopar% getGaData4(ga_queries[[i]], ga_id, date_range)
 
-res4
-
-
+head(res4)
+ga_queries[[1]]
+previous_period
 
 
