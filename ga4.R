@@ -1,4 +1,5 @@
 library(googleAnalyticsR)
+library(googleAuthR)
 ga_auth()
 google_analytics_account_list()
 
@@ -43,12 +44,12 @@ gadata <- google_analytics(id = ga_id,
 
 sessions.ga <- c(
   metrics = "sessions,users",
-  dimensions = "yearWeek"
+  dimensions = "month"
 )
 
 bounces.ga <- c(
   metrics = 'bounces',
-  dimensions = 'yearWeek'
+  dimensions = 'month'
 )
 bounces.ga['metrics']
 bounces.ga[4]
@@ -151,6 +152,10 @@ merge.by.time <- function(a, b) {
   merge(a, b, by='yearWeek', suffixes=c('', ncol(a)))
 }
 
+numCores <- detectCores()
+cl <- makeCluster(numCores - 6) 
+registerDoParallel(cl) 
+
 res<- system.time(
   foreach(i=1:length(ga_queries),.combine='merge.by.time') %do% getGaData(ga_queries[[i]])
 )
@@ -165,7 +170,7 @@ system.time(
 # res4.df <- foreach(i=1:length(ga_queries), .packages = c("googleAnalyticsR","googleAuthR"), .combine='merge.by.time') %dopar% getGaData4(ga_queries[[i]])
 
 #OK
-res4 <- foreach(i=1:length(ga_queries),.export=c(''), .packages = c("googleAnalyticsR","googleAuthR","lubridate"), .combine='list', .multicombine=TRUE) %dopar% getGaData4(ga_queries[[i]], ga_id, date_range)
+res4 <- foreach(i=1:length(ga_queries),.export=c("date_range"), .packages = c("googleAnalyticsR","googleAuthR","lubridate"), .combine='list', .multicombine=TRUE) %dopar% getGaData4(ga_queries[[i]], ga_id, date_range)
 
 head(res4)
 ga_queries[[1]]
